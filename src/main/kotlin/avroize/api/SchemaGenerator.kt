@@ -38,9 +38,12 @@ class SchemaGenerator(val json: JsonObject) {
                     addConstructorParameterForPrimitive(classBuilder, constructorBuilder, fieldName, type)
                 }
             }
-            classBuilder.primaryConstructor(constructorBuilder.build())
-            fileBuilder = fileBuilder
-                    .addType(classBuilder.build())
+
+            val rootDataNodeName = "avroize.definitions.RootDataNode"
+            val className = ClassName.bestGuess(rootDataNodeName)
+            classBuilder.primaryConstructor(constructorBuilder.build()).addSuperinterface(className)
+
+            fileBuilder.addType(classBuilder.build())
         }
 
         val record = fileBuilder.build()
