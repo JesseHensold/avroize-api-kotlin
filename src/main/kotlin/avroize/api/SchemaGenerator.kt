@@ -20,30 +20,30 @@ class SchemaGenerator(val json: JsonObject) {
     fun generateRecordRoot() {
         val name = json.string("name")!!
         val namespace = json.string("namespace")!!
-        var classBuilder = FileSpec.builder(namespace, name)
+        var fileBuilder = FileSpec.builder(namespace, name)
 
         val fields = json.array<JsonObject>("fields")
 
         if (fields != null) {
+            val classBuilder = TypeSpec.classBuilder(name)
             val constructorBuilder = FunSpec.constructorBuilder()
             fields.forEach {
                 val fieldName = it.string("name")!!
                 val fieldType = it.string("type")!!
-                addConstructorParameter(constructorBuilder, fieldName, fieldType)
+                addConstructorParameter(classBuilder, constructorBuilder, fieldName, fieldType)
             }
-
-            classBuilder = classBuilder
-                    .addType(TypeSpec.classBuilder(name)
-                            .primaryConstructor(constructorBuilder.build())
-                            .addFunction(FunSpec.builder("toJson")
-                                    .addStatement("val gson = %T()", Gson::class)
-                                    .addStatement("return gson.toJson(this)")
-                                    .returns(String::class)
-                                    .build())
+            classBuilder.addModifiers(KModifier.DATA)
+                    .primaryConstructor(constructorBuilder.build())
+                    .addFunction(FunSpec.builder("toJson")
+                            .addStatement("val gson = %T()", Gson::class)
+                            .addStatement("return gson.toJson(this)")
+                            .returns(String::class)
                             .build())
+            fileBuilder = fileBuilder
+                    .addType(classBuilder.build())
         }
 
-        val record = classBuilder.build()
+        val record = fileBuilder.build()
         record.writeTo(Paths.get("/home/ed/dev/avroize-api-kotlin/generated/main/kotlin"))
     }
 
@@ -51,10 +51,21 @@ class SchemaGenerator(val json: JsonObject) {
 
     }
 
-    fun addConstructorParameter(constructorBuilder: FunSpec.Builder, name: String, type: String) {
+    fun addConstructorParameter(classBuilder: TypeSpec.Builder, constructorBuilder: FunSpec.Builder,
+                                name: String, type: String) {
         when (type) {
-            "string" -> constructorBuilder.addParameter(name, String::class)
-            "int" -> constructorBuilder.addParameter(name, Int::class)
+            "string" -> {
+                constructorBuilder.addParameter(name, String::class)
+                classBuilder.addProperty(PropertySpec.builder(name, String::class)
+                        .initializer(name)
+                        .build())
+            }
+            "int" -> {
+                constructorBuilder.addParameter(name, Int::class)
+                classBuilder.addProperty(PropertySpec.builder(name, Int::class)
+                        .initializer(name)
+                        .build())
+            }
         }
     }
 }
