@@ -1,0 +1,60 @@
+apply plugin: "kotlin"
+apply plugin: "maven-publish"
+
+group = "avroize"
+version = "0.0.1"
+
+buildscript {
+    ext.kotlin_version = "1.1.51"
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+repositories {
+    jcenter()
+    mavenCentral()
+    mavenLocal()
+}
+
+sourceSets {
+    generated {
+        kotlin {
+            srcDirs = ["generated/main/kotlin"]
+            compileClasspath += sourceSets.main.runtimeClasspath
+        }
+    }
+}
+
+dependencies {
+    compile "avroize:avroize-utils-kotlin:0.0.1"
+    compile "com.beust:klaxon:0.30"
+    compile "com.squareup:kotlinpoet:0.5.0"
+    compile "com.google.code.gson:gson:2.8.2"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+
+jar {
+    from sourceSets.generated.output
+}
+
+task buildDataNodes(type: JavaExec) {
+    if (project.hasProperty("schemaPath")) {
+        args schemaPath
+    }
+    classpath = sourceSets.main.runtimeClasspath
+    main = "avroize.api.app"
+}
