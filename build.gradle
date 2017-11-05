@@ -1,9 +1,6 @@
 apply plugin: "kotlin"
 apply plugin: "maven-publish"
 
-group = "avroize"
-version = "0.0.1"
-
 buildscript {
     ext.kotlin_version = "1.1.51"
 
@@ -22,11 +19,15 @@ repositories {
     mavenLocal()
 }
 
+configurations {
+    generated
+}
+
 sourceSets {
     generated {
         kotlin {
             srcDirs = ["generated/main/kotlin"]
-            compileClasspath += sourceSets.main.runtimeClasspath
+            compileClasspath = configurations.generated
         }
     }
 }
@@ -37,18 +38,29 @@ dependencies {
     compile "com.squareup:kotlinpoet:0.5.0"
     compile "com.google.code.gson:gson:2.8.2"
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    generated "com.google.code.gson:gson:2.8.2"
 }
 
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            from components.java
+            if (project.hasProperty("group") && project.hasProperty("jarName") && project.hasProperty("jarVersion")) {
+                groupId group
+                artifactId jarName
+                version jarVersion
+
+                from components.java
+            }
         }
     }
 }
 
 jar {
-    from sourceSets.generated.output
+    if (project.hasProperty("jarName") && project.hasProperty("jarVersion")) {
+        baseName jarName
+        version jarVersion
+        from sourceSets.generated.output
+    }
 }
 
 task buildDataNodes(type: JavaExec) {
